@@ -153,7 +153,7 @@ pnpm run format:check
 
 ## Deployment and Operations
 
-`pnpm run build` packages the current host OS. Use `pnpm run build:win`, `pnpm run build:mac`, or `pnpm run build:linux` to target one platform explicitly. GitHub Actions builds all three on `v*` tags and `workflow_dispatch`.
+`pnpm run build` packages the current host OS. Use `pnpm run build:win`, `pnpm run build:mac`, or `pnpm run build:linux` to target one platform explicitly. Architecture-specific Linux CI scripts are `pnpm run build:linux:x64` and `pnpm run build:linux:arm64`. GitHub Actions builds Windows, macOS, Linux x64 (`ubuntu-latest`), and Linux arm64 (`ubuntu-24.04-arm`) on `v*` tags and `workflow_dispatch`. Linux artifacts upload as `ungate-standalone-linux-x64` and `ungate-standalone-linux-arm64`.
 
 The application uses a bundled Node.js runtime for the API process because native `better-sqlite3` bindings must match the runtime ABI. Packaged apps install `cloudflared` into `$HOME/.ungate/bin` for the running platform instead of shipping the host npm binary.
 
