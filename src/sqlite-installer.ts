@@ -55,6 +55,13 @@ export class BetterSqlite3Installer {
 		return path.join(path.dirname(this.getBinaryPath(apiDirectory)), INSTALLED_BINARY_NAME);
 	}
 
+	private static getPrebuildPath(apiDirectory: string, info: RuntimeInfo): string {
+		const packageDir = this.packageDir(apiDirectory);
+		const root = fs.existsSync(packageDir) ? fs.realpathSync(packageDir) : packageDir;
+
+		return path.join(root, 'prebuilds', `${info.platform}-${info.arch}`, 'better_sqlite3.node');
+	}
+
 	static resolveBindingPath(apiDirectory: string): string {
 		const installed = this.getInstalledBinaryPath(apiDirectory);
 
@@ -96,14 +103,26 @@ export class BetterSqlite3Installer {
 	}
 
 	private static async install(apiDirectory: string, runtime: string, callbacks: InstallCallbacks): Promise<void> {
-		const binaryPath = this.getBinaryPath(apiDirectory);
-		const installedBinaryPath = this.getInstalledBinaryPath(apiDirectory);
 		const version = this.readBundledVersion(apiDirectory);
 		const info = this.inspectRuntime(runtime);
 		const tarName = `better-sqlite3-v${version}-node-v${info.abi}-${info.platform}-${info.arch}.tar.gz`;
 		const url = `https://github.com/WiseLibs/better-sqlite3/releases/download/v${version}/${tarName}`;
 
 		callbacks.onLog('info', `[native] Using runtime: ${runtime}`);
+
+		const prebuildPath = this.getPrebuildPath(apiDirectory, info);
+
+		if (fs.existsSync(prebuildPath)) {
+			this.installFromFile(
+				prebuildPath,
+				apiDirectory,
+				callbacks,
+				`[native] better-sqlite3 prebuild installed (${info.platform}-${info.arch})`
+			);
+
+			return;
+		}
+
 		callbacks.onLog('info', `[native] Downloading ${tarName}...`);
 
 		const stagingRoot = path.join(os.tmpdir(), `ungate-better-sqlite3-${process.pid}-${Date.now()}`);
@@ -117,11 +136,7 @@ export class BetterSqlite3Installer {
 				throw new Error('[native] Downloaded archive did not contain better_sqlite3.node');
 			}
 
-			fs.mkdirSync(path.dirname(binaryPath), { recursive: true });
-			const tempTarget = `${installedBinaryPath}.${process.pid}.tmp`;
-			fs.copyFileSync(stagedBinary, tempTarget);
-			fs.renameSync(tempTarget, installedBinaryPath);
-			callbacks.onLog('info', '[native] better-sqlite3 binary installed');
+			this.installFromFile(stagedBinary, apiDirectory, callbacks, '[native] better-sqlite3 binary installed');
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 
@@ -133,6 +148,16 @@ export class BetterSqlite3Installer {
 		} finally {
 			fs.rmSync(stagingRoot, { recursive: true, force: true });
 		}
+	}
+
+	private static installFromFile(source: string, apiDirectory: string, callbacks: InstallCallbacks, message: string): void {
+		const binaryPath = this.getBinaryPath(apiDirectory);
+		const installedBinaryPath = this.getInstalledBinaryPath(apiDirectory);
+		fs.mkdirSync(path.dirname(binaryPath), { recursive: true });
+		const tempTarget = `${installedBinaryPath}.${process.pid}.tmp`;
+		fs.copyFileSync(source, tempTarget);
+		fs.renameSync(tempTarget, installedBinaryPath);
+		callbacks.onLog('info', message);
 	}
 
 	private static async downloadAndExtract(url: string, extractDir: string): Promise<void> {

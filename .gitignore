@@ -12,6 +12,8 @@ dist/
 
 # Generated resources (staged by prepare:resources)
 /resources/runtime/
+/resources/runtimes/
+/resources/native-cache/
 /resources/api/
 /resources/web/
 /resources/icon.png

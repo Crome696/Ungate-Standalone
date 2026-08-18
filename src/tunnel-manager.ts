@@ -4,6 +4,8 @@ import path from 'node:path';
 
 import { bin, install, Tunnel, use } from 'cloudflared';
 
+import { isPackaged } from './paths.js';
+
 import type { LogEntry, TunnelState } from './types.js';
 
 const CLOUDFLARED_BIN_DIR = path.join(os.homedir(), '.ungate', 'bin');
@@ -68,16 +70,15 @@ export class TunnelManager {
 	}
 
 	private async ensureBinary(): Promise<void> {
-		const devBinExists = fs.existsSync(bin);
 		const userBinPath = this.resolveUserBinaryPath();
 
-		if (devBinExists) {
+		if (userBinPath) {
+			this.useBinary(userBinPath);
+
 			return;
 		}
 
-		if (userBinPath) {
-			use(userBinPath);
-
+		if (!isPackaged() && fs.existsSync(bin)) {
 			return;
 		}
 
@@ -88,7 +89,7 @@ export class TunnelManager {
 			fs.mkdirSync(CLOUDFLARED_BIN_DIR, { recursive: true });
 			const installPath = getCloudflaredBinPath();
 			const installedPath = await install(installPath);
-			use(installedPath);
+			this.useBinary(installedPath);
 			this.onLog({ timestamp: Date.now(), level: 'info', message: 'cloudflared installed successfully' });
 			this.setState({ status: 'starting', url: null, error: null });
 		} catch (error) {
@@ -96,6 +97,14 @@ export class TunnelManager {
 			this.onLog({ timestamp: Date.now(), level: 'error', message: `Failed to install cloudflared: ${message}` });
 			this.setState({ status: 'error', url: null, error: `Install failed: ${message}` });
 		}
+	}
+
+	private useBinary(binaryPath: string): void {
+		if (process.platform !== 'win32') {
+			fs.chmodSync(binaryPath, 0o755);
+		}
+
+		use(binaryPath);
 	}
 
 	private resolveUserBinaryPath(): string | null {

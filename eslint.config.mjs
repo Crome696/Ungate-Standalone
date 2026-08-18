@@ -57,7 +57,7 @@ export default defineConfig(
 			parserOptions: {
 				projectService: true,
 				tsconfigRootDir: import.meta.dirname,
-				allowDefaultProject: ['scripts/*.mjs', 'src/preload.cjs', 'eslint.config.mjs', 'prettier.config.mjs']
+				allowDefaultProject: ['scripts/*.mjs', 'scripts/*.cjs', 'src/preload.cjs', 'eslint.config.mjs', 'prettier.config.mjs']
 			},
 			globals: {
 				...globals.node
@@ -68,7 +68,7 @@ export default defineConfig(
 		rules: sharedRules
 	},
 	{
-		files: ['scripts/**/*.mjs', 'src/**/*.cjs'],
+		files: ['scripts/**/*.mjs'],
 		extends: [tseslint.configs.disableTypeChecked],
 		languageOptions: {
 			parserOptions: {
@@ -80,12 +80,17 @@ export default defineConfig(
 		}
 	},
 	{
-		files: ['src/preload.cjs'],
+		files: ['scripts/**/*.cjs', 'src/preload.cjs'],
+		extends: [tseslint.configs.disableTypeChecked],
 		languageOptions: {
-			sourceType: 'commonjs'
+			sourceType: 'commonjs',
+			parserOptions: {
+				projectService: false
+			}
 		},
 		rules: {
-			'@typescript-eslint/no-require-imports': 'off'
+			'@typescript-eslint/no-require-imports': 'off',
+			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
 		}
 	},
 	eslintConfigPrettier
