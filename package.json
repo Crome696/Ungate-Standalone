@@ -118,6 +118,7 @@
 		"linux": {
 			"icon": "resources/icon.png",
 			"category": "Development",
+			"maintainer": "ungate-standalone <Crome696@users.noreply.github.com>",
 			"artifactName": "UngateStandalone-${version}-${os}-${arch}.${ext}",
 			"target": [
 				{
