@@ -1,0 +1,15 @@
+{
+	"extends": "@ungate/dev-kit/tsconfig-base",
+	"compilerOptions": {
+		"baseUrl": "./"
+	},
+	"include": [
+		"src",
+		"eslint.config.mjs",
+		"tsup.config.ts"
+	],
+	"exclude": [
+		"lib",
+		"node_modules"
+	]
+}

@@ -1,0 +1,3 @@
+[submodule "vendor/ungate"]
+	path = vendor/ungate
+	url = https://github.com/orchidfiles/ungate.git

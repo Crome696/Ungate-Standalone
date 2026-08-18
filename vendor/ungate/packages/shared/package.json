@@ -1,0 +1,46 @@
+{
+	"name": "@ungate/shared",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./lib/index.d.ts",
+			"import": "./lib/index.js",
+			"require": "./lib/index.cjs",
+			"default": "./lib/index.js"
+		},
+		"./frontend": {
+			"types": "./lib/frontend.d.ts",
+			"import": "./lib/frontend.js",
+			"require": "./lib/frontend.cjs",
+			"default": "./lib/frontend.js"
+		}
+	},
+	"typesVersions": {
+		"*": {
+			"frontend": [
+				"./lib/frontend.d.ts"
+			],
+			"*": [
+				"./lib/index.d.ts"
+			]
+		}
+	},
+	"files": [
+		"lib"
+	],
+	"scripts": {
+		"build": "pnpm run clean && tsup",
+		"build:watch": "pnpm run clean && tsup --watch",
+		"clean": "rm -rf lib",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix"
+	},
+	"devDependencies": {
+		"@ungate/dev-kit": "workspace:*",
+		"tsup": "~8.5.1",
+		"typescript": "~5.7.0"
+	},
+	"dependencies": {
+		"zod": "~4.3.6"
+	}
+}

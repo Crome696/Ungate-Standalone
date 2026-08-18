@@ -1,0 +1,107 @@
+{
+	"name": "ungate-standalone",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Standalone Windows host for the Ungate local proxy, dashboard, and Cloudflare tunnel",
+	"author": "ungate-standalone",
+	"license": "MIT",
+	"type": "module",
+	"main": "dist/main.js",
+	"scripts": {
+		"prepare:resources": "node scripts/prepare-resources.mjs",
+		"build:host": "tsc && node scripts/copy-preload.mjs",
+		"dev": "pnpm run build:host && electron .",
+		"build": "pnpm run prepare:resources && pnpm run build:host && electron-builder --win portable nsis",
+		"start": "electron .",
+		"lint": "eslint src scripts",
+		"lint:fix": "eslint src scripts --fix",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
+	},
+	"dependencies": {
+		"cloudflared": "~0.7.1",
+		"tar": "~6.2.1"
+	},
+	"devDependencies": {
+		"@types/node": "~22.15.35",
+		"@typescript-eslint/parser": "~8.57.2",
+		"electron": "~35.2.1",
+		"electron-builder": "~26.0.12",
+		"eslint": "~9.39.5",
+		"eslint-config-prettier": "~10.1.8",
+		"eslint-import-resolver-typescript": "~4.4.5",
+		"eslint-plugin-import-x": "~4.16.2",
+		"eslint-plugin-prettier": "~5.5.6",
+		"globals": "~17.4.0",
+		"prettier": "~3.8.5",
+		"typescript": "~5.7.3",
+		"typescript-eslint": "~8.57.2"
+	},
+	"build": {
+		"appId": "com.ungate.standalone",
+		"productName": "UngateStandalone",
+		"copyright": "Ungate is MIT-licensed by orchidfiles.com",
+		"directories": {
+			"output": "release"
+		},
+		"files": [
+			"dist/**/*",
+			"package.json"
+		],
+		"extraResources": [
+			{
+				"from": "resources/runtime",
+				"to": "runtime"
+			},
+			{
+				"from": "resources/api",
+				"to": "api"
+			},
+			{
+				"from": "resources/web",
+				"to": "web"
+			},
+			{
+				"from": "resources/icon.png",
+				"to": "icon.png"
+			}
+		],
+		"asarUnpack": [
+			"node_modules/cloudflared/**"
+		],
+		"win": {
+			"icon": "resources/icon.png",
+			"signAndEditExecutable": false,
+			"target": [
+				{
+					"target": "portable",
+					"arch": [
+						"x64"
+					]
+				},
+				{
+					"target": "nsis",
+					"arch": [
+						"x64"
+					]
+				}
+			]
+		},
+		"portable": {
+			"artifactName": "UngateStandalone.exe"
+		},
+		"nsis": {
+			"artifactName": "UngateStandalone-Setup.exe",
+			"oneClick": false,
+			"allowToChangeInstallationDirectory": true
+		},
+		"publish": null
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"electron",
+			"cloudflared",
+			"electron-winstaller"
+		]
+	}
+}
