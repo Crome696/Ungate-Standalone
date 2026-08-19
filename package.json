@@ -15,6 +15,8 @@
 		"build:win": "pnpm run prepare:resources && pnpm run build:host && electron-builder --win portable nsis --x64 --publish never",
 		"build:mac": "pnpm run prepare:resources && pnpm run build:host && electron-builder --mac dmg zip --x64 --arm64 --publish never",
 		"build:linux": "pnpm run prepare:resources && pnpm run build:host && electron-builder --linux AppImage deb --x64 --arm64 --publish never",
+		"build:linux:x64": "pnpm run prepare:resources && pnpm run build:host && electron-builder --linux AppImage deb --x64 --publish never",
+		"build:linux:arm64": "pnpm run prepare:resources && pnpm run build:host && electron-builder --linux AppImage deb --arm64 --publish never",
 		"start": "electron .",
 		"lint": "eslint src scripts",
 		"lint:fix": "eslint src scripts --fix",
@@ -116,6 +118,7 @@
 		"linux": {
 			"icon": "resources/icon.png",
 			"category": "Development",
+			"maintainer": "ungate-standalone <Crome696@users.noreply.github.com>",
 			"artifactName": "UngateStandalone-${version}-${os}-${arch}.${ext}",
 			"target": [
 				{
