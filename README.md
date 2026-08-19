@@ -4,6 +4,11 @@
 
 > A desktop host for [Ungate](https://github.com/orchidfiles/ungate) that runs the local OpenAI-compatible proxy, serves the Ungate dashboard, and optionally exposes the API through a Cloudflare quick tunnel.
 
+<p align="center">
+  <a href="https://github.com/Crome696/ungate-standalone/actions/workflows/build.yml"><img src="https://github.com/Crome696/ungate-standalone/actions/workflows/build.yml/badge.svg" alt="Build status" /></a>
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" />
+</p>
+
 ## Project Snapshot
 
 | Field               | Value                                                    |
