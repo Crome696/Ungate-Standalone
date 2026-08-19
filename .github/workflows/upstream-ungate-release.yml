@@ -1,0 +1,113 @@
+name: Upstream Ungate Auto-Release
+
+on:
+  repository_dispatch:
+    types: [ungate_release]
+
+concurrency:
+  group: ungate-upstream-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Validate payload
+        id: payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ github.event.client_payload.ungate_tag }}" ]; then
+            echo "Missing required client_payload.ungate_tag (expected format: vX.Y.Z)" >&2
+            exit 1
+          fi
+
+          echo "ungate_tag=${{ github.event.client_payload.ungate_tag }}" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether to skip
+        id: decide
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          UNGATE_TAG="${{ steps.payload.outputs.ungate_tag }}"
+          UNGATE_VERSION="${UNGATE_TAG#v}"
+          CURRENT_UNGATE_VERSION="$(node -e "console.log(require('./vendor/ungate/package.json').version)")"
+
+          if [ "$CURRENT_UNGATE_VERSION" = "$UNGATE_VERSION" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          NEXT_VERSION="$(node scripts/bump-version.mjs --dry-run)"
+          NEXT_TAG="v${NEXT_VERSION}"
+
+          # If the standalone tag already exists, another run likely completed earlier.
+          if git ls-remote --tags origin "refs/tags/${NEXT_TAG}" | grep -q "${NEXT_TAG}"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Configure git user
+        if: steps.decide.outputs.skip != 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update vendor/ungate submodule
+        if: steps.decide.outputs.skip != 'true'
+        shell: bash
+        env:
+          UNGATE_TAG: ${{ steps.payload.outputs.ungate_tag }}
+        run: |
+          set -euo pipefail
+
+          git -C vendor/ungate fetch --tags origin
+          git -C vendor/ungate checkout "${UNGATE_TAG}"
+
+      - name: Bump standalone version (minor)
+        if: steps.decide.outputs.skip != 'true'
+        id: bump_version
+        shell: bash
+        run: |
+          NEXT_VERSION="$(node scripts/bump-version.mjs --write)"
+          echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit + create tag
+        if: steps.decide.outputs.skip != 'true'
+        shell: bash
+        env:
+          UNGATE_TAG: ${{ steps.payload.outputs.ungate_tag }}
+          NEXT_VERSION: ${{ steps.bump_version.outputs.next_version }}
+        run: |
+          set -euo pipefail
+
+          TAG="v${NEXT_VERSION}"
+
+          git add vendor/ungate package.json
+          git commit -m "chore: bump ungate to ${UNGATE_TAG} (standalone v${NEXT_VERSION})"
+          git tag "${TAG}"
+
+          git push origin "HEAD:${{ github.event.repository.default_branch }}"
+          git push origin "${TAG}"
+

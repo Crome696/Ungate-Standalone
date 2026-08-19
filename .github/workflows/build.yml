@@ -7,7 +7,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -74,3 +74,62 @@ jobs:
             release/*.zip
             release/*.AppImage
             release/*.deb
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref_name, 'v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (metadata)
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Compute release notes
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          UNGATE_VERSION="$(node -e "console.log(require('./vendor/ungate/package.json').version)")"
+          UNGATE_COMMIT="$(git -C vendor/ungate rev-parse HEAD)"
+          echo "ungate_version=$UNGATE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "ungate_commit=$UNGATE_COMMIT" >> "$GITHUB_OUTPUT"
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: ungate-standalone-windows
+          path: artifacts/windows
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: ungate-standalone-macos
+          path: artifacts/macos
+
+      - name: Download Linux x64 artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: ungate-standalone-linux-x64
+          path: artifacts/linux-x64
+
+      - name: Download Linux arm64 artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: ungate-standalone-linux-arm64
+          path: artifacts/linux-arm64
+
+      - name: Create GitHub Release (with assets)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Ungate Standalone ${{ github.ref_name }}
+          body: |
+            Bundled Ungate version: ${{ steps.meta.outputs.ungate_version }}
+            Ungate submodule commit: ${{ steps.meta.outputs.ungate_commit }}
+          files: |
+            artifacts/windows/*
+            artifacts/macos/*
+            artifacts/linux-x64/*
+            artifacts/linux-arm64/*
