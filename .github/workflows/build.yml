@@ -95,8 +95,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          UNGATE_TAG="$(git -C vendor/ungate describe --tags --exact-match 2>/dev/null || true)"
-          if [[ ! "$UNGATE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          UNGATE_TAG="$(node scripts/resolve-upstream-tag.mjs)"
+          if [[ ! "$UNGATE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "vendor/ungate is not checked out at an exact semver tag" >&2
             exit 1
           fi
