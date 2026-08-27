@@ -18,7 +18,7 @@
 | Host                | Electron 35                                              |
 | Bundled API runtime | Node.js 22.16.0                                          |
 | Package manager     | [pnpm](https://pnpm.io/) 10+                             |
-| Upstream            | Ungate Git submodule `v1.7.10`                           |
+| Upstream            | Ungate Git submodule `v1.7.12`                           |
 | Release artifacts   | Windows portable/NSIS, macOS DMG/zip, Linux AppImage/deb |
 | License             | [MIT](LICENSE)                                           |
 
@@ -76,7 +76,7 @@ The API runs separately from the Electron host. `HostController` coordinates the
 - `src/paths.ts` — development and packaged-resource path resolution.
 - [`scripts/prepare-resources.mjs`](scripts/prepare-resources.mjs) — builds Ungate, stages API/Web resources, downloads Node.js 22 runtimes, and prepares native SQLite resources.
 - [`scripts/package-current.mjs`](scripts/package-current.mjs) — packages the current host OS with electron-builder.
-- `vendor/ungate/` — upstream Ungate Git submodule pinned to `v1.7.10`.
+- `vendor/ungate/` — upstream Ungate Git submodule pinned to `v1.7.12`.
 - `resources/` — generated API bundle, web UI, runtimes, and application icon used by development and packaging.
 
 ## Getting Started

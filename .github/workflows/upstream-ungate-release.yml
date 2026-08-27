@@ -31,40 +31,67 @@ jobs:
       - name: Validate payload
         id: payload
         shell: bash
+        env:
+          UNGATE_TAG: ${{ github.event.client_payload.ungate_tag }}
         run: |
           set -euo pipefail
-          if [ -z "${{ github.event.client_payload.ungate_tag }}" ]; then
-            echo "Missing required client_payload.ungate_tag (expected format: vX.Y.Z)" >&2
+
+          if [[ ! "$UNGATE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid or missing client_payload.ungate_tag: expected vX.Y.Z" >&2
             exit 1
           fi
 
-          echo "ungate_tag=${{ github.event.client_payload.ungate_tag }}" >> "$GITHUB_OUTPUT"
+          echo "ungate_tag=$UNGATE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch upstream tags
+        shell: bash
+        run: git -C vendor/ungate fetch --tags origin
 
       - name: Decide whether to skip
         id: decide
         shell: bash
+        env:
+          UNGATE_TAG: ${{ steps.payload.outputs.ungate_tag }}
         run: |
           set -euo pipefail
 
-          UNGATE_TAG="${{ steps.payload.outputs.ungate_tag }}"
-          UNGATE_VERSION="${UNGATE_TAG#v}"
-          CURRENT_UNGATE_VERSION="$(node -e "console.log(require('./vendor/ungate/package.json').version)")"
+          CURRENT_UNGATE_TAG="$(git -C vendor/ungate describe --tags --exact-match 2>/dev/null || true)"
+          CURRENT_STANDALONE_VERSION="$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version)")"
+          if [[ ! "$CURRENT_STANDALONE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "package.json does not contain a valid standalone semver" >&2
+            exit 1
+          fi
 
-          if [ "$CURRENT_UNGATE_VERSION" = "$UNGATE_VERSION" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT_UNGATE_TAG" = "$UNGATE_TAG" ]; then
+            CURRENT_STANDALONE_TAG="v${CURRENT_STANDALONE_VERSION}"
+            if git ls-remote --exit-code --tags origin "refs/tags/${CURRENT_STANDALONE_TAG}" >/dev/null 2>&1; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            # The submodule and package are already updated, but the release tag is missing.
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+            echo "next_version=$CURRENT_STANDALONE_VERSION" >> "$GITHUB_OUTPUT"
             exit 0
+          fi
+
+          if ! git -C vendor/ungate rev-parse --verify "refs/tags/${UNGATE_TAG}^{commit}" >/dev/null 2>&1; then
+            echo "Upstream tag ${UNGATE_TAG} was not found in vendor/ungate origin" >&2
+            exit 1
           fi
 
           NEXT_VERSION="$(node scripts/bump-version.mjs --dry-run)"
           NEXT_TAG="v${NEXT_VERSION}"
 
           # If the standalone tag already exists, another run likely completed earlier.
-          if git ls-remote --tags origin "refs/tags/${NEXT_TAG}" | grep -q "${NEXT_TAG}"; then
+          if git ls-remote --exit-code --tags origin "refs/tags/${NEXT_TAG}" >/dev/null 2>&1; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "bump=true" >> "$GITHUB_OUTPUT"
           echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Configure git user
@@ -82,15 +109,29 @@ jobs:
         run: |
           set -euo pipefail
 
-          git -C vendor/ungate fetch --tags origin
-          git -C vendor/ungate checkout "${UNGATE_TAG}"
+          git -C vendor/ungate checkout --detach "${UNGATE_TAG}"
+
+      - name: Update upstream references
+        if: steps.decide.outputs.skip != 'true'
+        shell: bash
+        env:
+          UNGATE_TAG: ${{ steps.payload.outputs.ungate_tag }}
+        run: node scripts/update-upstream-version.mjs --tag "$UNGATE_TAG"
 
       - name: Bump standalone version (minor)
-        if: steps.decide.outputs.skip != 'true'
+        if: steps.decide.outputs.skip != 'true' && steps.decide.outputs.bump == 'true'
         id: bump_version
         shell: bash
+        env:
+          EXPECTED_VERSION: ${{ steps.decide.outputs.next_version }}
         run: |
+          set -euo pipefail
+
           NEXT_VERSION="$(node scripts/bump-version.mjs --write)"
+          if [ "$NEXT_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "Version bump changed unexpectedly: expected ${EXPECTED_VERSION}, got ${NEXT_VERSION}" >&2
+            exit 1
+          fi
           echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Commit + create tag
@@ -98,16 +139,19 @@ jobs:
         shell: bash
         env:
           UNGATE_TAG: ${{ steps.payload.outputs.ungate_tag }}
-          NEXT_VERSION: ${{ steps.bump_version.outputs.next_version }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          BUMP_VERSION: ${{ steps.decide.outputs.bump }}
+          NEXT_VERSION: ${{ steps.decide.outputs.next_version }}
         run: |
           set -euo pipefail
 
           TAG="v${NEXT_VERSION}"
 
-          git add vendor/ungate package.json
-          git commit -m "chore: bump ungate to ${UNGATE_TAG} (standalone v${NEXT_VERSION})"
+          if [ "$BUMP_VERSION" = "true" ]; then
+            git add README.md package.json vendor/ungate
+            git commit -m "chore: bump ungate to ${UNGATE_TAG} (standalone v${NEXT_VERSION})"
+          fi
           git tag "${TAG}"
 
-          git push origin "HEAD:${{ github.event.repository.default_branch }}"
+          git push origin "HEAD:${DEFAULT_BRANCH}"
           git push origin "${TAG}"
-

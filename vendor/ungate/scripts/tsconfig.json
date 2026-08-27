@@ -1,8 +1,0 @@
-{
-	"extends": "@ungate/dev-kit/tsconfig-base",
-	"compilerOptions": {
-		"types": ["node"]
-	},
-	"include": ["./**/*.ts", "eslint.config.mjs"],
-	"exclude": ["node_modules"]
-}
