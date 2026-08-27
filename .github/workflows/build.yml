@@ -76,7 +76,7 @@ jobs:
             release/*.deb
 
   release:
-    if: github.event_name == 'push' && startsWith(github.ref_name, 'v')
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref_name, 'v')
     needs: build
     runs-on: ubuntu-latest
     steps:
