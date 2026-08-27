@@ -10,6 +10,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   bump:
@@ -155,3 +156,14 @@ jobs:
 
           git push origin "HEAD:${DEFAULT_BRANCH}"
           git push origin "${TAG}"
+
+      - name: Trigger release build
+        if: steps.decide.outputs.skip != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEXT_VERSION: ${{ steps.decide.outputs.next_version }}
+        run: |
+          set -euo pipefail
+
+          gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref "v${NEXT_VERSION}"
