@@ -8,18 +8,18 @@ const TAG_ARGUMENT_INDEX = process.argv.findIndex((argument) => argument === '--
 const TAG_ARGUMENT = process.argv.find((argument) => argument.startsWith('--tag='));
 const tag = TAG_ARGUMENT?.slice('--tag='.length) ?? (TAG_ARGUMENT_INDEX >= 0 ? process.argv[TAG_ARGUMENT_INDEX + 1] : '') ?? '';
 
-if (!/^v\d+\.\d+\.\d+$/.test(tag)) {
+if (!/^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(tag)) {
 	throw new Error(`Unsupported upstream tag: "${tag}". Expected vX.Y.Z.`);
 }
 
 const readme = fs.readFileSync(README_PATH, 'utf8');
 const replacements = [
 	{
-		pattern: /(\| Upstream\s+\|\s+Ungate Git submodule `)(v\d+\.\d+\.\d+)(`\s+\|)/,
+		pattern: /(\| Upstream\s+\|\s+Ungate Git submodule `)(v\d+\.\d+\.\d+)(`\s+\|)/g,
 		replacement: `$1${tag}$3`
 	},
 	{
-		pattern: /(vendor\/ungate\/.*pinned to `)(v\d+\.\d+\.\d+)(`\.)/,
+		pattern: /(vendor\/ungate\/.*pinned to `)(v\d+\.\d+\.\d+)(`\.)/g,
 		replacement: `$1${tag}$3`
 	}
 ];
@@ -27,8 +27,9 @@ const replacements = [
 let updatedReadme = readme;
 
 for (const { pattern, replacement } of replacements) {
-	if (!pattern.test(updatedReadme)) {
-		throw new Error(`README.md does not contain the expected upstream reference for ${pattern}.`);
+	const matches = [...updatedReadme.matchAll(pattern)];
+	if (matches.length !== 1) {
+		throw new Error(`README.md must contain exactly one upstream reference matching ${pattern}; found ${matches.length}.`);
 	}
 
 	updatedReadme = updatedReadme.replace(pattern, replacement);
