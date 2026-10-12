@@ -28,7 +28,7 @@
 		"tar": "~7.5.0"
 	},
 	"devDependencies": {
-		"@types/node": "~22.15.35",
+		"@types/node": "~22.20.0",
 		"@typescript-eslint/parser": "~8.57.2",
 		"electron": "~41.10.0",
 		"electron-builder": "~26.0.12",
