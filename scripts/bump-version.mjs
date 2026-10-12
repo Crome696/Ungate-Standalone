@@ -20,6 +20,7 @@ function parseSemver(version) {
 
 function computeNextMinorPatchZero(version) {
 	const { major, minor } = parseSemver(version);
+
 	return `${major}.${minor + 1}.0`;
 }
 
@@ -39,4 +40,3 @@ if (write) {
 }
 
 console.log(nextVersion);
-
