@@ -1,14 +1,9 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": [
-		"config:recommended",
-		":dependencyDashboard"
-	],
+	"extends": ["config:recommended", ":dependencyDashboard"],
 	"vulnerabilityAlerts": {
 		"enabled": true,
-		"labels": [
-			"security"
-		]
+		"labels": ["security"]
 	},
 	"osvVulnerabilityAlerts": true,
 	"timezone": "Europe/Berlin"
