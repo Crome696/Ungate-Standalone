@@ -25,7 +25,7 @@
 	},
 	"dependencies": {
 		"cloudflared": "~0.7.1",
-		"tar": "~6.2.1"
+		"tar": "~7.5.0"
 	},
 	"devDependencies": {
 		"@types/node": "~22.15.35",
