@@ -31,7 +31,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "~22.15.35",
-		"@typescript-eslint/parser": "~8.57.2",
+		"@typescript-eslint/parser": "~8.72.0",
 		"electron": "~41.10.0",
 		"electron-builder": "~26.15.0",
 		"eslint": "~9.39.5",
@@ -42,7 +42,7 @@
 		"globals": "~17.4.0",
 		"prettier": "~3.8.5",
 		"typescript": "~5.7.3",
-		"typescript-eslint": "~8.57.2"
+		"typescript-eslint": "~8.72.0"
 	},
 	"build": {
 		"appId": "com.ungate.standalone",
